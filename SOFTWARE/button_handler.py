@@ -1,8 +1,5 @@
-from gpiozero import Button
 import asyncio
-from networking import safe_api_call
-from app_context import AppContext, AppFlags
-from typing import Callable, Awaitable
+from app_context import AppContext
 
 
 async def button_watcher(context: AppContext, state_queue: asyncio.Queue):
