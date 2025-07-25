@@ -6,7 +6,7 @@ from networking import fetch_token
 import json
 
 # from typing import Optional
-import config
+from config import config
 
 TOKEN_FILE = config.TOKEN_FILE
 API_KEY = config.API_KEY

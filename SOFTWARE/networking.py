@@ -9,7 +9,7 @@ from app_context import AppContext
 
 from getmac import get_mac_address as gma  # module for mac adress
 from subprocess import check_output  # module for ip address
-import config
+from config import config
 
 
 CHECK_URLS = [

@@ -1,6 +1,6 @@
 from typing import Optional
 from model_classes import User, Instrument, Reservation, Token
-import config
+from config import config
 import unidecode
 import aiohttp
 

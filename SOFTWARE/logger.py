@@ -3,7 +3,7 @@ import gspread
 from gspread import Spreadsheet
 from datetime import datetime
 import asyncio
-import config
+from config import config
 import gspread.utils
 from dataclasses import dataclass, fields
 #
