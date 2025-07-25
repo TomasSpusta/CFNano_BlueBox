@@ -1,0 +1,3 @@
+[submodule "SOFTWARE/config"]
+	path = SOFTWARE/config
+	url = git@github.com:TomasSpusta/CFNano_BlueBox_config.git
