@@ -6,12 +6,14 @@ import aiohttp
 
 
 class APIClient:
+    # Fetch instrument data based on MAC address (and store IP info locally)
     async def fetch_instrument_data(self, mac: str, ip: str) -> Optional[Instrument]:
         print("Instrument data: Fetching...")
         url = config.EQUIPMENT_BY_MAC
 
         try:
             async with aiohttp.ClientSession() as session:
+                # Send POST request to fetch instrument info using MAC
                 async with session.post(url, json={"mac_address": mac}) as response:
                     if response.status != 200:
                         print(f"Response status {response.status}")
@@ -22,12 +24,11 @@ class APIClient:
                         return None
 
                     response_json = await response.json()
-                    # print(f"Response from instrument: {response_json}")
 
                     if not response_json:
-                        print("Empty response from api")
                         return None
 
+                    # Parse and return Instrument object
                     instrument = Instrument(
                         id=response_json[0]["equipmentid"],
                         name=response_json[0]["alias"],
@@ -41,6 +42,7 @@ class APIClient:
             print("Error in fetch instrument")
             return None
 
+    # Retrieve authentication token from API using API key
     async def fetch_token(self) -> Optional[Token]:
         api_key = config.API_KEY
         url = config.FETCH_TOKEN
@@ -63,23 +65,25 @@ class APIClient:
                         print("Empty response from api")
                         return None
 
+                    # Create and return Token object
                     token = Token(
                         string=response_json["accessToken"],
                         expiration=response_json["expiresAt"],
                     )
-                    # print("New token recieved")
                     return token
 
         except Exception:
             print("Error in fetch_token")
             return None
 
+    # Fetch user data based on RFID card ID
     async def fetch_user_data(self, card_id) -> Optional[User]:
         print("User data: Fetching...")
         url = config.CONTACT_BY_RFID
 
         try:
             async with aiohttp.ClientSession() as session:
+                # POST request to fetch user info by RFID
                 async with session.post(url, json={"rfid": card_id}) as response:
                     if response.status != 200:
                         print(f"Response status {response.status}")
@@ -96,9 +100,12 @@ class APIClient:
                         print("Empty response from api")
                         return None
 
+                    # Normalize name (e.g., remove diacritics)
                     name = response_json[0]["firstname"]
                     full_name = response_json[0]["full_name"]
                     name_non_dia = unidecode.unidecode(name)
+
+                    # Create and return User object
                     user = User(
                         id=response_json[0]["contactid"],
                         name=name_non_dia,
@@ -112,11 +119,9 @@ class APIClient:
             print("Error in fetch user")
             return None
 
+    # Start or extend a reservation
     async def start_extend_reservation(
-        self,
-        user: User,
-        instrument: Instrument,
-        token: Token,  # session: Session
+        self, user: User, instrument: Instrument, token: Token
     ) -> Optional[Reservation]:
         print("Recording START/EXTEND: API Call...")
         payload = {"contactId": user.id, "equipmentId": instrument.id}
@@ -147,6 +152,7 @@ class APIClient:
         except aiohttp.ClientError:
             print("Error in start_recording")
 
+    # Get updated info about an active reservation, mainly remaining time
     async def fetch_recording_info(
         self, token: Token, reservation: Reservation
     ) -> Optional[Reservation]:
@@ -164,6 +170,7 @@ class APIClient:
                         )
                     else:
                         response_content = await response.json()
+                        # Update remaining time
                         reservation.remaining_time = int(response_content["timetoend"])
 
                         return reservation
@@ -171,6 +178,7 @@ class APIClient:
         except aiohttp.ClientError:
             print("Error in fetch_recording_info")
 
+    # Stop an active reservation
     async def stop_reservation(
         self, reservation: Reservation, instrument: Instrument, token: Token
     ):
@@ -194,9 +202,6 @@ class APIClient:
                         print(f"Message: {error_message}")
                         return None
                     else:
-                        # response_content = await response.json()
-                        # status_message = response_content.get("status")
-                        # print(f"Stop reservation Message: {status_message}")
                         print("Recording STOP: Recording Stopped.")
 
         except aiohttp.ClientError:
