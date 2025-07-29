@@ -8,12 +8,14 @@ import json
 # from typing import Optional
 from config import config
 
-TOKEN_FILE = config.TOKEN_FILE
-API_KEY = config.API_KEY
+TOKEN_FILE = config.TOKEN_FILE  # Path to JSON file that stores the token
+API_KEY = config.API_KEY  # API key used to fetch token
 
 
 async def load_token(TOKEN_FILE: Path) -> Token | None:
-    # print("Loading token...")
+    """
+    Load a saved token from disk. Returns a Token object if successful, otherwise None.
+    """
 
     if TOKEN_FILE.exists():
         try:
@@ -25,6 +27,9 @@ async def load_token(TOKEN_FILE: Path) -> Token | None:
 
 
 async def save_token(token: Token, TOKEN_FILE: Path):
+    """
+    Save a token object as a JSON file on disk.
+    """
     try:
         TOKEN_FILE.write_text(json.dumps(token.to_dict()))
         print("[TokenHandler] New token saved.")
@@ -34,7 +39,10 @@ async def save_token(token: Token, TOKEN_FILE: Path):
 
 
 async def verify_token(context: AppContext) -> Token:
-    # print("[TokenHandler] Verifying token...")
+    """
+    Verifies whether the current token is valid and updates it in the application context.
+    If no valid token is found, fetches a new one.
+    """
     token = await load_token(TOKEN_FILE)
 
     needs_refresh = token is None or not await check_expiration(token)
@@ -44,12 +52,14 @@ async def verify_token(context: AppContext) -> Token:
         token = await fetch_token(API_KEY)
         await save_token(token, TOKEN_FILE)
 
-        # print(            f"[TokenHandler] Token valid. Expires in: {datetime.fromisoformat(token.expiration) - datetime.now()}"        )
     context.token = token
     return token
 
 
 async def check_expiration(token: Token) -> bool:
+    """
+    Checks if a token is expired or close to expiration (5 min buffer).
+    """
     try:
         time_now_with_buffer = datetime.now() + timedelta(minutes=5)
         token_expiration_formated = datetime.fromisoformat(token.expiration)
@@ -62,4 +72,4 @@ async def check_expiration(token: Token) -> bool:
 
     except Exception as e:
         print("Error in checking_token: " + str(e))
-        return str(e)
+        return False

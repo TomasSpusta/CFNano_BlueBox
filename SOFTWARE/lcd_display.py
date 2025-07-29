@@ -5,21 +5,26 @@ from typing import Optional
 
 # initialize the LCD display, (expander chip, port)
 class LCDController:
+    """
+    Asynchronous controller for an I²C character LCD using the RPLCD library.
+    Supports non-blocking message display, backlight control, and flashing effects.
+    """
+
     def __init__(
         self,
-        address=0x27,
-        chip="PCF8574",  # , default_message: Optional[list[str]] = None
+        address=0x27,  # Default I²C address for many LCD backpacks
+        chip="PCF8574",  # Common I²C GPIO expander used on LCD adapters
     ):
+        # Initialize the LCD
         self.lcd = CharLCD(chip, address)
-        self.message_queue = asyncio.PriorityQueue()
-        self.current_message = None
+        # Ensure exclusive LCD access for concurrent tasks
         self.lock = asyncio.Lock()
-        # self.default_message = default_message
 
     async def _write(self, text, row):
         if text:
-            # await asyncio.to_thread(self.lcd.cursor_pos.__setattr__,(row-1, 0))
+            # Set cursor to specified row, column 0 (1-indexed row)
             await asyncio.to_thread(setattr, self.lcd, "cursor_pos", (row - 1, 0))
+            # Write the text to that position
             await asyncio.to_thread(self.lcd.write_string, text)
 
     async def message(
@@ -33,9 +38,14 @@ class LCDController:
         display_time: int = 2,
     ):
         async with self.lock:
+            # Turn backlight on/off
             await asyncio.to_thread(setattr, self.lcd, "backlight_enabled", backlight)
+
+            # Optionally clear the LCD before writing new message
             if clear is True:
                 await asyncio.to_thread(self.lcd.clear)
+
+            # Write provided lines to rows 1–4
             if line1 is not None:
                 await self._write(line1, 1)
             if line2 is not None:
@@ -44,8 +54,8 @@ class LCDController:
                 await self._write(line3, 3)
             if line4 is not None:
                 await self._write(line4, 4)
+        # Keep the message visible for a defined duration
         await asyncio.sleep(display_time)
-        #
 
     async def _backlight(self, status: bool):
         await asyncio.to_thread(setattr, self.lcd, "backlight_enabled", status)
@@ -53,6 +63,7 @@ class LCDController:
     async def _clear(self):
         await asyncio.to_thread(self.lcd.clear)
 
+    # Flashing screen for alarm or notification
     async def flashing(self, interval, number_of_flashes):
         for _ in range(number_of_flashes):
             await asyncio.sleep(interval)
@@ -61,5 +72,7 @@ class LCDController:
             await asyncio.to_thread(setattr, self.lcd, "backlight_enabled", False)
 
     async def cleanup(self):
+        # Clear screen
         await asyncio.to_thread(self.lcd.clear)
+        # Turn off backlight
         await asyncio.to_thread(setattr, self.lcd, "backlight_enabled", False)

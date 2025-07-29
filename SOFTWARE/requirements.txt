@@ -1,0 +1,7 @@
+aiohttp==3.12.15
+getmac==0.9.5
+gpiozero==2.0.1
+gspread==6.2.1
+mfrc522==0.0.7
+RPLCD==1.4.0
+Unidecode==1.4.0

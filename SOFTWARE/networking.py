@@ -21,18 +21,17 @@ CHECK_URLS = [
 
 
 async def check_internet_connection(timeout: int = 5, retries: int = 2) -> bool:
+    """Try to reach well-known servers to confirm internet access."""
     for _ in range(retries):
         for url in CHECK_URLS:
             try:
-                # print(f"Trying to ping {url}")
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, timeout=timeout):
-                        # print("Online")
-                        return True
+                        return True  # Success if any URL is reachable
             except Exception:
-                continue
+                continue  # Try next URL
         await asyncio.sleep(1)
-    print("Offline")
+    print("Offline")  # All attempts failed
     return False
 
 
@@ -42,17 +41,15 @@ async def network_monitor(
     check_interval: float = 5.0,
 ):
     """
-    Continuously checks internet connection.
-    Updates shared state and optionally shows/hides screen warnings.
+    Runs in the background to track network status.
+    Shows/hides 'offline' warnings based on connectivity.
     """
     was_online = context.network_status
     consecutive_failures: int = 0
-    failure_threshold: int = 3
+    failure_threshold: int = 3  # How many checks must fail to be considered offline
 
     while True:
         is_online = await check_internet_connection()
-
-        # context.network_status = is_online
 
         if is_online:
             consecutive_failures = 0
@@ -73,6 +70,10 @@ async def network_monitor(
 
 
 async def wait_until_online(context: AppContext, screen: Screens):
+    """
+    Blocks progress until the device is connected to the internet.
+    Continuously displays 'no connection' message.
+    """
     while not context.network_status:
         context.flags.lcd_in_use = True
         context.flags.block_buttons = True
@@ -81,6 +82,9 @@ async def wait_until_online(context: AppContext, screen: Screens):
 
 
 async def fetch_token(api_key: str) -> Optional[Token]:
+    """
+    Request a new access token using the provided API key.
+    """
     url = config.FETCH_TOKEN
 
     try:
@@ -113,6 +117,7 @@ async def fetch_token(api_key: str) -> Optional[Token]:
 
 
 async def fetch_mac() -> str:
+    """Retrieve the MAC address of the device."""
     try:
         mac = gma()
         print("My MAC adress is: {}".format(mac))
@@ -123,6 +128,7 @@ async def fetch_mac() -> str:
 
 
 async def fetch_ip() -> str:
+    """Retrieve the IP address using shell command."""
     try:
         ip = str(check_output(["hostname", "-I"]))
 
@@ -134,37 +140,34 @@ async def fetch_ip() -> str:
 
 
 async def safe_api_call(
-    api_func,
+    api_func,  # Callable API function
     *,
-    context: AppContext,
+    context: AppContext,  # Shared context object
     api_screens: Screens,
-    logger: Optional[Logger] = None,
-    **kwargs,
+    logger: Optional[Logger] = None,  # Optional logger
+    **kwargs,  # Parameters for API function
 ):
-    await wait_until_online(context=context, screen=api_screens)
-    from token_handler import verify_token
-
     """
-    Safely execute API calls and handle errors by displaying them on the LCD.
-    Stops the main loop if an error occurs.
+    Ensure device is online and token is valid before executing the API function.
+    If the call fails, an error is printed and shown on the LCD.
 
     :param api_func: The API function to execute.
     :param screens: Screens object to show errors.
     :param args: Positional arguments for the API function.
     :param kwargs: Keyword arguments for the API function.
     """
+    await wait_until_online(context=context, screen=api_screens)
+    from token_handler import verify_token
+
     try:
-        await verify_token(context=context)
-        # print("Trying API call...")
-        return await api_func(**kwargs)
+        await verify_token(context=context)  # Ensure token is still valid
+        return await api_func(**kwargs)  # Call the API
     except Exception as e:
         error_message = f"Error in {api_func.__name__}: {e}"
         print(error_message)
 
         if logger:
             pass
-            # await logger.write_log(12, error_message)
 
         await api_screens.error_message(str(e), source_function=api_func.__name__)
         return None
-        # raise SystemExit("Critical Error. Stopping the program.")

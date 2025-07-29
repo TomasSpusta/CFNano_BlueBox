@@ -7,11 +7,14 @@ from datetime import datetime
 
 class UserStopReservationState(State):
     """
-    Responsible for stopping the reservation when user decides to end it.
+    State that handles user-initiated termination of the reservation.
+    Calls the backend to stop the recording, updates the screen, and logs the action.
     """
 
     async def run(self, context: AppContext) -> State:
+        # Ensure exclusive access while interacting with shared state and API
         async with context.lock:
+            # Attempt to stop the reservation using safe API wrapper
             await safe_api_call(
                 context.api.stop_reservation,
                 context=context,
@@ -21,6 +24,12 @@ class UserStopReservationState(State):
                 instrument=context.instrument,
                 token=context.token,
             )
+
+        # Inform the user that the reservation was successfully stopped
         await context.screens.user_stop_reservation()
+
+        # Log the end of the reservation as user-initiated
         await context.logger.make_log.recording_end(datetime.now(), "Ended by user")
+
+        # Return to the idle state, waiting for the next card scan
         return WaitingForCardState()

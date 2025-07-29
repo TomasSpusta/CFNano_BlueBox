@@ -5,6 +5,10 @@ from model_classes import Instrument
 
 
 class Screens:
+    """
+    Class responsible to store all used screens possible to display
+    """
+
     def __init__(self, lcd_controller: LCDController):
         self.lcd = lcd_controller
 
@@ -172,7 +176,6 @@ class Screens:
             error[20:],
             display_time=5,
         )
-        # sys.exit("Critical Error. Stopping the program.")
 
     # Button menu
     async def button_menu(
@@ -262,12 +265,6 @@ class Screens:
                             args.append(None)  # Default fallback
 
                     await attr(*args)
-
-    async def counting_screen(self, counter: int):
-        await self.lcd.message(f"{counter}")
-
-    async def counter_done(self):
-        await self.lcd.message("Done!")
 
     async def loading_screen_step(self, label: str, bar: str):
         await self.lcd.message(label, bar, "", "", display_time=0.1)
