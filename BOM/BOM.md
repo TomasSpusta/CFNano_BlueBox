@@ -21,6 +21,7 @@ Bill of parts and materials:
 3. Electro modules/parts
   -  1x Raspberry Pi 4
   -  1x RPi power supply (USB-C, 5V, 3A)
+  -  1x Heatsing for RPi CPU
   -  1x MFRC522 RFID module
   -  1x 2004 LCD with I2C module
   -  3x 12x12 mm push button
