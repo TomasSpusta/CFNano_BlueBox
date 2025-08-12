@@ -1,4 +1,4 @@
-Bill of materials:
+Bill of parts and materials:
 
 1. 3D printed parts:
   - RPi-plane
@@ -20,6 +20,7 @@ Bill of materials:
 
 3. Electro modules/parts
   -  1x Raspberry Pi 4
+  -  1x RPi power supply (USB-C, 5V, 3A)
   -  1x MFRC522 RFID module
   -  1x 2004 LCD with I2C module
   -  3x 12x12 mm push button
@@ -27,3 +28,7 @@ Bill of materials:
   -  1x button cap green
   -  1x button cap blue
   -  17x dupont connector wires (7 RFID, 4 LCD, 6 buttons)
+  -  1x 20x2 dupont female coonector (RPi board)
+  -  1x 8x1 dupont female connector (RFDI module)
+  -  1x 4x1 dupont female connector (LCD module)
+  -  1x 3x1 duppont header (to be soldered on RPi)
