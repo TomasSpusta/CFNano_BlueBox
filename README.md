@@ -8,7 +8,7 @@ BlueBoxes are designed to be relatively minimalistic, cheap, yet functional devi
 
 RPi4 was selected because it provides LAN/Ethernet and WIFI connectivity, the Python language is relatively easy to program, and there are numerous existing libraries for peripheral modules and RPi4. Used modules (RFID reader, LCD display, buttons) are widely available.
 
-The [electronics](../../wiki/Hardware) side of the BlueBoxes is composed of modules. Due to still running development (discovering required functions), the modularity and swapability of modules were prioritised over the possible compact size of the custom PCB (maybe in the future). 
+The [electronic](../../wiki/Hardware) side of the BlueBoxes is composed of modules. Due to still running development (discovering required functions), the modularity and swapability of modules were prioritised over the possible compact size of the custom PCB (maybe in the future). 
 
 BlueBox case is 3D [printed](../../wiki/Printing) from PLA filament.
  
