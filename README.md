@@ -1,7 +1,6 @@
 # CEITEC Nano Core Facility BlueBox
 
-<img width="1890" height="591" alt="Bluebox images" src="https://github.com/user-attachments/assets/0d26d264-cc8a-4ceb-8e45-4f8f715402f7" />
-
+<img width="1600" height="500" alt="luebox_reneder_v3" src="https://github.com/user-attachments/assets/18011d01-acb8-4f4e-9f0f-2409e8dedea6" />
 
 BlueBoxes are an extension for the core facility Ceitec Nano booking/ reservation system (https://today.ceitec.cz/nano and https://booking.ceitec.cz/) created with the intention of easing the reservation process and increasing the effectiveness of instrument usage in the core facility. 
 
