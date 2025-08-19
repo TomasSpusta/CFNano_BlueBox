@@ -1,5 +1,8 @@
 # CEITEC Nano Core Facility BlueBox
 
+<img width="1890" height="591" alt="Bluebox images" src="https://github.com/user-attachments/assets/0d26d264-cc8a-4ceb-8e45-4f8f715402f7" />
+
+
 BlueBoxes are an extension for the core facility Ceitec Nano booking/ reservation system (https://today.ceitec.cz/nano and https://booking.ceitec.cz/) created with the intention of easing the reservation process and increasing the effectiveness of instrument usage in the core facility. 
 
 The basic usage idea of creating the BlueBoxes is to authorise previously created reservations by swiping the user's card (RFID) over the RFID reader inside the BlueBox. The authorisation process is then initiated, checking user credentials and the presence of a reservation linked with the user and equipment. If authorisation is successful, the initial time of the reservation is edited to correspond to real time. If the user does not authorise the reservation, it is cancelled after a timeout, providing a free slot for another user. Additional features are: the ability to stop a reservation from the BlueBox if needed, and the ability to extend the running reservation on the spot from the BlueBox.
