@@ -18,9 +18,10 @@ GIT_REF="${4:-main}"
 DEPLOY_DIR="${5:-/home/bb/bb-app}"
 REPO_SUBDIR="${6:-}"
 APP_DIR="${DEPLOY_DIR}"
+REPO_CACHE_DIR="${DEPLOY_DIR}/.bb-app-repo"
 
 if [[ -n "${REPO_SUBDIR}" ]]; then
-  APP_DIR="${DEPLOY_DIR}/${REPO_SUBDIR}"
+  APP_DIR="${DEPLOY_DIR}"
 fi
 
 REMOTE_CONFIG_DIR="${APP_DIR}/config"
@@ -52,30 +53,38 @@ ssh "${SSH_TARGET}" "set -euo pipefail
 echo "[2/6] Installing git if needed"
 ssh "${SSH_TARGET}" "set -euo pipefail
   command -v git >/dev/null 2>&1 || { sudo apt-get update; sudo apt-get install -y git; }
+  command -v rsync >/dev/null 2>&1 || { sudo apt-get update; sudo apt-get install -y rsync; }
 "
 
 echo "[3/6] Clone or update repository"
 ssh "${SSH_TARGET}" "set -euo pipefail
-  if [[ ! -d '${DEPLOY_DIR}/.git' ]]; then
-    if [[ -n '${REPO_SUBDIR}' ]]; then
-      sudo -u bb git clone --filter=blob:none --no-checkout '${GIT_REPO_SSH}' '${DEPLOY_DIR}'
-      sudo -u bb git -C '${DEPLOY_DIR}' sparse-checkout init --cone
-      sudo -u bb git -C '${DEPLOY_DIR}' sparse-checkout set '${REPO_SUBDIR}'
-    else
+  if [[ -n '${REPO_SUBDIR}' ]]; then
+    if [[ ! -d '${REPO_CACHE_DIR}/.git' ]]; then
+      sudo -u bb git clone --filter=blob:none --no-checkout '${GIT_REPO_SSH}' '${REPO_CACHE_DIR}'
+      sudo -u bb git -C '${REPO_CACHE_DIR}' sparse-checkout init --cone
+      sudo -u bb git -C '${REPO_CACHE_DIR}' sparse-checkout set '${REPO_SUBDIR}'
+    fi
+    sudo -u bb git -C '${REPO_CACHE_DIR}' sparse-checkout init --cone
+    sudo -u bb git -C '${REPO_CACHE_DIR}' sparse-checkout set '${REPO_SUBDIR}'
+    sudo -u bb git -C '${REPO_CACHE_DIR}' fetch --tags --prune
+    sudo -u bb git -C '${REPO_CACHE_DIR}' checkout '${GIT_REF}'
+    sudo -u bb git -C '${REPO_CACHE_DIR}' pull --ff-only
+    sudo -u bb mkdir -p '${DEPLOY_DIR}'
+    sudo -u bb rsync -a --delete \
+      --exclude '.bb-app-repo' \
+      --exclude '.venv' \
+      --exclude 'config' \
+      '${REPO_CACHE_DIR}/${REPO_SUBDIR}/' '${DEPLOY_DIR}/'
+    test -f '${DEPLOY_DIR}/bb-app-install.sh'
+  else
+    if [[ ! -d '${DEPLOY_DIR}/.git' ]]; then
       sudo -u bb git clone '${GIT_REPO_SSH}' '${DEPLOY_DIR}'
     fi
+    sudo -u bb git -C '${DEPLOY_DIR}' fetch --tags --prune
+    sudo -u bb git -C '${DEPLOY_DIR}' checkout '${GIT_REF}'
+    sudo -u bb git -C '${DEPLOY_DIR}' pull --ff-only
+    test -f '${APP_DIR}/bb-app-install.sh'
   fi
-
-  if [[ -n '${REPO_SUBDIR}' ]]; then
-    sudo -u bb git -C '${DEPLOY_DIR}' sparse-checkout init --cone
-    sudo -u bb git -C '${DEPLOY_DIR}' sparse-checkout set '${REPO_SUBDIR}'
-  fi
-
-  sudo -u bb git -C '${DEPLOY_DIR}' fetch --tags --prune
-  sudo -u bb git -C '${DEPLOY_DIR}' checkout '${GIT_REF}'
-  sudo -u bb git -C '${DEPLOY_DIR}' pull --ff-only
-
-  test -f '${APP_DIR}/bb-app-install.sh'
 "
 
 echo "[4/6] Pushing runtime secrets"
@@ -95,7 +104,7 @@ ssh "${SSH_TARGET}" "set -euo pipefail
 "
 
 echo "[6/6] Verifying service + recording deployed commit"
-COMMIT="$(ssh "${SSH_TARGET}" "git -C '${DEPLOY_DIR}' rev-parse HEAD")"
+COMMIT="$(ssh "${SSH_TARGET}" "if [[ -n '${REPO_SUBDIR}' ]]; then git -C '${REPO_CACHE_DIR}' rev-parse HEAD; else git -C '${DEPLOY_DIR}' rev-parse HEAD; fi")"
 TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 ssh "${SSH_TARGET}" "sudo systemctl is-enabled bb-app.service >/dev/null && sudo systemctl is-active bb-app.service >/dev/null"
 

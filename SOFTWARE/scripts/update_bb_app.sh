@@ -12,9 +12,10 @@ GIT_REF="${2:-main}"
 DEPLOY_DIR="${3:-/home/bb/bb-app}"
 REPO_SUBDIR="${4:-}"
 APP_DIR="${DEPLOY_DIR}"
+REPO_CACHE_DIR="${DEPLOY_DIR}/.bb-app-repo"
 
 if [[ -n "${REPO_SUBDIR}" ]]; then
-  APP_DIR="${DEPLOY_DIR}/${REPO_SUBDIR}"
+  APP_DIR="${DEPLOY_DIR}"
 fi
 
 if [[ -z "${SSH_TARGET}" ]]; then
@@ -24,15 +25,28 @@ fi
 
 echo "[1/4] Updating repository to ${GIT_REF}"
 ssh "${SSH_TARGET}" "set -euo pipefail
-  test -d '${DEPLOY_DIR}/.git'
   if [[ -n '${REPO_SUBDIR}' ]]; then
-    sudo -u bb git -C '${DEPLOY_DIR}' sparse-checkout init --cone
-    sudo -u bb git -C '${DEPLOY_DIR}' sparse-checkout set '${REPO_SUBDIR}'
+    test -d '${REPO_CACHE_DIR}/.git'
+    command -v rsync >/dev/null 2>&1 || { sudo apt-get update; sudo apt-get install -y rsync; }
+    sudo -u bb git -C '${REPO_CACHE_DIR}' sparse-checkout init --cone
+    sudo -u bb git -C '${REPO_CACHE_DIR}' sparse-checkout set '${REPO_SUBDIR}'
+    sudo -u bb git -C '${REPO_CACHE_DIR}' fetch --tags --prune
+    sudo -u bb git -C '${REPO_CACHE_DIR}' checkout '${GIT_REF}'
+    sudo -u bb git -C '${REPO_CACHE_DIR}' pull --ff-only
+    sudo -u bb mkdir -p '${DEPLOY_DIR}'
+    sudo -u bb rsync -a --delete \
+      --exclude '.bb-app-repo' \
+      --exclude '.venv' \
+      --exclude 'config' \
+      '${REPO_CACHE_DIR}/${REPO_SUBDIR}/' '${DEPLOY_DIR}/'
+    test -f '${DEPLOY_DIR}/bb-app-install.sh'
+  else
+    test -d '${DEPLOY_DIR}/.git'
+    sudo -u bb git -C '${DEPLOY_DIR}' fetch --tags --prune
+    sudo -u bb git -C '${DEPLOY_DIR}' checkout '${GIT_REF}'
+    sudo -u bb git -C '${DEPLOY_DIR}' pull --ff-only
+    test -f '${APP_DIR}/bb-app-install.sh'
   fi
-  sudo -u bb git -C '${DEPLOY_DIR}' fetch --tags --prune
-  sudo -u bb git -C '${DEPLOY_DIR}' checkout '${GIT_REF}'
-  sudo -u bb git -C '${DEPLOY_DIR}' pull --ff-only
-  test -f '${APP_DIR}/bb-app-install.sh'
 "
 
 echo "[2/4] Re-running installer"
@@ -48,7 +62,7 @@ ssh "${SSH_TARGET}" "set -euo pipefail
 "
 
 echo "[4/4] Logging deployed commit"
-COMMIT="$(ssh "${SSH_TARGET}" "git -C '${DEPLOY_DIR}' rev-parse HEAD")"
+COMMIT="$(ssh "${SSH_TARGET}" "if [[ -n '${REPO_SUBDIR}' ]]; then git -C '${REPO_CACHE_DIR}' rev-parse HEAD; else git -C '${DEPLOY_DIR}' rev-parse HEAD; fi")"
 TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 echo "${TIMESTAMP},${SSH_TARGET},${COMMIT},ok" >> logs/deployments.log
 
