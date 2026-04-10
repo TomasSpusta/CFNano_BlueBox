@@ -20,6 +20,7 @@ APT_PACKAGES=(
   python3-smbus
   python3-rpi.gpio
   python3-spidev
+  python3-lgpio
   i2c-tools
   build-essential
 )
@@ -87,8 +88,10 @@ python3 -m venv "${VENV_DIR}"
 echo "Running preflight dependency checks"
 python3 -c "import smbus; print('System smbus import OK')"
 python3 -c "import RPi.GPIO; print('System RPi.GPIO import OK')"
+python3 -c "import lgpio; print('System lgpio import OK')"
 "${PYTHON_BIN}" -c "import smbus2; print('Venv smbus2 import OK')"
 "${PYTHON_BIN}" -c "from RPLCD.i2c import CharLCD; print('RPLCD CharLCD import OK')"
+PYTHONPATH=/usr/lib/python3/dist-packages "${PYTHON_BIN}" -c "import lgpio; print('Venv can import system lgpio via PYTHONPATH')"
 
 if sudo systemctl cat "${SERVICE_NAME}" 2>/dev/null | grep -q "GPIOZERO_PIN_FACTORY="; then
   echo "Warning: Existing ${SERVICE_NAME} has GPIOZERO_PIN_FACTORY override."
@@ -111,6 +114,8 @@ ExecStart=${PYTHON_BIN} ${ENTRYPOINT}
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/usr/lib/python3/dist-packages
+Environment=GPIOZERO_PIN_FACTORY=lgpio
 
 [Install]
 WantedBy=multi-user.target
