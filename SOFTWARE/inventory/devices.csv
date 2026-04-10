@@ -1,0 +1,2 @@
+hostname,ssh_target,deploy_path,git_repo_ssh,git_ref,instrument_name,instrument_id,git_key_fingerprint,git_access_status,last_deployed_commit,last_deployed_at,notes
+bb-test,bb@100.66.18.133,/home/bb/bb-app,git@github.com:YOUR_ORG/YOUR_REPO.git,main,,,,,,,,
