@@ -22,15 +22,15 @@ class Reservation:
     remaining_time: int = 0
     recording_id: str = ""
     reservation_id: str = ""
-    warning_sent = False
-    ended_by_user = False
-    ended_by_time = False
+    warning_sent: bool = False
+    ended_by_user: bool = False
+    ended_by_time: bool = False
 
 
+@dataclass
 class Token:
-    def __init__(self, string: str, expiration: str):
-        self.string = string
-        self.expiration = expiration
+    string: str
+    expiration: str
 
     def to_dict(self):
         return {"string": self.string, "expiration": self.expiration}

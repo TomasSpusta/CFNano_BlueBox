@@ -1,2 +1,5 @@
 config/*
 __pycache__/*
+states/__pycache__/*
+.venv/*
+.stfolder/*

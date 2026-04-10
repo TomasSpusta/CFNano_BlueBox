@@ -1,6 +1,7 @@
 import asyncio
 from states.base_state import State
 from app_context import AppContext
+from networking import check_internet_connection
 
 
 class OfflineState(State):
@@ -21,7 +22,7 @@ class OfflineState(State):
         while True:
             # Wait 1 second before retrying
             await asyncio.sleep(1)
-            if await context.api.check_connection():
+            if await check_internet_connection():
                 # If reconnected, show a confirmation screen
                 await context.screens.connection_restored()
                 # Transition back to normal waiting state

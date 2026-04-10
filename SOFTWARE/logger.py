@@ -84,6 +84,7 @@ class Logger:
             2  # Always write to row 2, so logs are new (top) ---> old (bot)
         )
         self.make_log = _LoggerInterface(self)  # Exposes async logging methods
+        self._fallback_lock = asyncio.Lock()
 
     async def initialize(self):
         """Authenticate and open or create the Google Sheet."""
@@ -179,11 +180,14 @@ class Logger:
         """Writes a log message to a fallback local text file."""
         local_log_path = Path("/home/bluebox/log_local.txt")
         try:
-            await asyncio.to_thread(
-                local_log_path.write_text,
-                f"{datetime.now().isoformat()} - {message}\n",
-                encoding="utf-8",
-                append=True if local_log_path.exists() else False,
-            )
+            line = f"{datetime.now().isoformat()} - {message}\n"
+            async with self._fallback_lock:
+                await asyncio.to_thread(self._append_local_log, local_log_path, line)
         except Exception as e:
             print(f"Failed to write local log:{e}, message: {message}")
+
+    @staticmethod
+    def _append_local_log(path: Path, line: str):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(line)

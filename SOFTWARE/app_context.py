@@ -47,4 +47,4 @@ class AppContext:
     network_status: bool = True  # True: Device is online, False: Device is offline
     lock = None
     counter = 100
-    button_lock = asyncio.Lock()
+    button_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
