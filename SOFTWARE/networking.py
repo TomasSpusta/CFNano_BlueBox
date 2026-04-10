@@ -1,15 +1,14 @@
 import aiohttp
 import asyncio
 
-from model_classes import Token
 from screen_manager import Screens
 from typing import Optional
 from logger import Logger
 from app_context import AppContext
+from http_config import CONNECTIVITY_TIMEOUT
 
 from getmac import get_mac_address as gma  # module for mac adress
 from subprocess import check_output  # module for ip address
-from config import config
 
 
 CHECK_URLS = [
@@ -22,14 +21,19 @@ CHECK_URLS = [
 
 async def check_internet_connection(timeout: int = 5, retries: int = 2) -> bool:
     """Try to reach well-known servers to confirm internet access."""
+    request_timeout = aiohttp.ClientTimeout(
+        total=min(timeout, CONNECTIVITY_TIMEOUT.total or timeout),
+        connect=CONNECTIVITY_TIMEOUT.connect,
+        sock_read=CONNECTIVITY_TIMEOUT.sock_read,
+    )
     for _ in range(retries):
-        for url in CHECK_URLS:
-            try:
-                async with aiohttp.ClientSession() as session:
+        try:
+            async with aiohttp.ClientSession(timeout=request_timeout) as session:
+                for url in CHECK_URLS:
                     async with session.get(url, timeout=timeout):
                         return True  # Success if any URL is reachable
-            except Exception:
-                continue  # Try next URL
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            pass
         await asyncio.sleep(1)
     print("Offline")  # All attempts failed
     return False
@@ -81,41 +85,6 @@ async def wait_until_online(context: AppContext, screen: Screens):
         await asyncio.sleep(2)
 
 
-async def fetch_token(api_key: str) -> Optional[Token]:
-    """
-    Request a new access token using the provided API key.
-    """
-    url = config.FETCH_TOKEN
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, json={"apiKey": api_key}) as response:
-                if response.status != 200:
-                    print(f"Response status {response.status}")
-                    error_content = await response.json()
-                    print(f"Error content {error_content}")
-                    error_message = error_content.get("message")
-                    print(f"Message: {error_message}")
-                    return None
-
-                response_json = await response.json()
-
-                if not response_json:
-                    print("Empty response from api")
-                    return None
-
-                token = Token(
-                    string=response_json["accessToken"],
-                    expiration=response_json["expiresAt"],
-                )
-                print("New token recieved")
-                return token
-
-    except Exception:
-        print("Error in fetch_token")
-        return None
-
-
 async def fetch_mac() -> str:
     """Retrieve the MAC address of the device."""
     try:
@@ -162,7 +131,7 @@ async def safe_api_call(
     try:
         await verify_token(context=context)  # Ensure token is still valid
         return await api_func(**kwargs)  # Call the API
-    except Exception as e:
+    except (aiohttp.ClientError, asyncio.TimeoutError, Exception) as e:
         error_message = f"Error in {api_func.__name__}: {e}"
         print(error_message)
 

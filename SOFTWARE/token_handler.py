@@ -2,14 +2,12 @@ from model_classes import Token
 from app_context import AppContext
 from datetime import datetime, timedelta
 from pathlib import Path
-from networking import fetch_token
 import json
 
 # from typing import Optional
 from config import config
 
 TOKEN_FILE = config.TOKEN_FILE  # Path to JSON file that stores the token
-API_KEY = config.API_KEY  # API key used to fetch token
 
 
 async def load_token(TOKEN_FILE: Path) -> Token | None:
@@ -38,7 +36,7 @@ async def save_token(token: Token, TOKEN_FILE: Path):
         print(f"[TokenHandler] Failed to save token: {e}")
 
 
-async def verify_token(context: AppContext) -> Token:
+async def verify_token(context: AppContext) -> Token | None:
     """
     Verifies whether the current token is valid and updates it in the application context.
     If no valid token is found, fetches a new one.
@@ -49,7 +47,9 @@ async def verify_token(context: AppContext) -> Token:
 
     if needs_refresh:
         print("[TokenHandler] Token missing or expired — fetching new one.")
-        token = await fetch_token(API_KEY)
+        token = await context.api.fetch_token()
+        if token is None:
+            return None
         await save_token(token, TOKEN_FILE)
 
     context.token = token

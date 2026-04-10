@@ -24,7 +24,7 @@ class RFIDReader:
         """
         try:
             # Blocking read from RFID reader
-            card_id, _ = self.reader.read()
+            card_id, _ = await asyncio.to_thread(self.reader.read)
             now = time.time()
 
             # Only accept new card or if cooldown has passed
